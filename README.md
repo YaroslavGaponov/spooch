@@ -11,8 +11,7 @@ Spooch is NoSQL database server with RESTFul API in pure Node.JS
 
 ## Stop
 
-As daemon `./bin/spoochd stop`
-As application `node ./bin/spooch.js`
+`./bin/spoochd stop`
 
 ## Test
 
