@@ -15,7 +15,7 @@ Spooch is NoSQL database server with RESTFul API in pure Node.JS
 
 ## Test REST server
 
-REST API `./test/test.sh`
+`./test/test.sh`
 
 ## Check speed for disk storage
 
