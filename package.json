@@ -1,7 +1,7 @@
 {
   "name": "spooch",
-  "version": "0.0.2",
-  "description": "NoSQL database server with RESTful API in pure Node.JS",
+  "version": "0.0.1",
+  "description": "NoSQL database server with REST API in pure Node.JS",
   "main": "./bin/spoochd",
   "bin": {
     "spooch": "spooch.js"
@@ -23,7 +23,8 @@
   "keywords": [
     "nosql",
     "database",
-    "server"
+    "server",
+    "storage"
   ],
   "author": "Yaroslav Gaponov",
   "license": "BSD"
