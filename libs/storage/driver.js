@@ -3,10 +3,15 @@ var fs = require("fs");
 var util = require("util");
 var Cache = require("./cache");
 
-var HEADER = { NEXT_OFFSET: 0, KEY_LENGTH_OFFSET: 4, VALUE_LENGTH_OFFSET: 8, SIZE: 12 };
-var EOL = 0xFFFFFFFF;
+var HEADER = { SIGN_OFFSET: 0, VERSION_OFFSET: 6, TABLE_ELEMETS_OFFSET: 10, SIZE: 14 };
+var SIGN = "SPOOCH";
+var VERSION = 0;
+
+var RECORD_HEADER = { NEXT_OFFSET: 0, KEY_LENGTH_OFFSET: 4, VALUE_LENGTH_OFFSET: 8, SIZE: 12 };
+
 var TABLE_ELEMETS = 1024;
 var TABLE_SIZE = TABLE_ELEMETS << 2;
+var EOL = 0xFFFFFFFF;
 
 
 var Comparator = {
@@ -32,8 +37,16 @@ Driver.prototype.open = function() {
         this.eof = fs.fstatSync(this.fd).size;
     } else {
         this.fd = fs.openSync(this.filename, "wx+");
+        
+        var header = new Buffer(HEADER.SIZE);
+        header.write(SIGN, HEADER.SIGN_OFFSET);
+        header.writeUInt32BE(VERSION, HEADER.VERSION_OFFSET);
+        header.writeUInt32BE(TABLE_ELEMETS, HEADER.TABLE_ELEMETS_OFFSET);
+        fs.writeSync(this.fd, header, 0, header.length, 0);
+        
         var table = new Buffer(TABLE_SIZE); table.fill(EOL & 0xFF);
-        this.eof = fs.writeSync(this.fd, table, 0, TABLE_SIZE, 0);        
+        fs.writeSync(this.fd, table, 0, TABLE_SIZE, HEADER.SIZE);
+        this.eof = HEADER.SIZE + TABLE_SIZE;
     }
     return true;
 }
@@ -51,36 +64,36 @@ Driver.prototype.set = function(key, value) {
         
     var index = Driver.hashCode(key) % TABLE_ELEMETS;
     var o = new Buffer(4);
-    fs.readSync(this.fd, o, 0, o.length, index << 2);
+    fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
     var offset = o.readUInt32BE(0);
     
     var pred_offset = null;
 
-    var record_header = new Buffer(HEADER.SIZE);
-    record_header.writeUInt32BE(EOL, HEADER.NEXT_OFFSET);
+    var record_header = new Buffer(RECORD_HEADER.SIZE);
+    record_header.writeUInt32BE(EOL, RECORD_HEADER.NEXT_OFFSET);
 
     while(offset != EOL) {
         fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
-        var curr_key_size = record_header.readUInt32BE(HEADER.KEY_LENGTH_OFFSET);
+        var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
-        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + HEADER.SIZE);
+        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
         if (Comparator.compare(key, curr_key) === Comparator.EQUAL) {
-            offset = record_header.readUInt32BE(HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
             break;            
         } else if (Comparator.compare(key, curr_key) === Comparator.LESS) {
             pred_offset = offset;
-            offset = record_header.readUInt32BE(HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
         } else if (Comparator.compare(key, curr_key) === Comparator.MORE) {
             break;
         }
     }
     
-    var newRecord = new Buffer(HEADER.SIZE + key.length + value.length);
-    newRecord.writeUInt32BE(offset, HEADER.NEXT_OFFSET);
-    newRecord.writeUInt32BE(key.length, HEADER.KEY_LENGTH_OFFSET);
-    newRecord.writeUInt32BE(value.length, HEADER.VALUE_LENGTH_OFFSET);
-    newRecord.write(key, HEADER.SIZE);
-    newRecord.write(value, HEADER.SIZE + key.length);
+    var newRecord = new Buffer(RECORD_HEADER.SIZE + key.length + value.length);
+    newRecord.writeUInt32BE(offset, RECORD_HEADER.NEXT_OFFSET);
+    newRecord.writeUInt32BE(key.length, RECORD_HEADER.KEY_LENGTH_OFFSET);
+    newRecord.writeUInt32BE(value.length, RECORD_HEADER.VALUE_LENGTH_OFFSET);
+    newRecord.write(key, RECORD_HEADER.SIZE);
+    newRecord.write(value, RECORD_HEADER.SIZE + key.length);
     
     var bytes = fs.writeSync(this.fd, newRecord, 0, newRecord.length, this.eof);
 
@@ -91,7 +104,7 @@ Driver.prototype.set = function(key, value) {
     } else {
         var o = new Buffer(4);
         o.writeUInt32BE(this.eof, 0);
-        fs.writeSync(this.fd, o, 0, o.length, index << 2);
+        fs.writeSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
     }
     
     this.eof += bytes;
@@ -116,23 +129,23 @@ Driver.prototype.get = function(key) {
     
     var index = Driver.hashCode(key) % TABLE_ELEMETS;
     var o = new Buffer(4);
-    fs.readSync(this.fd, o, 0, o.length, index << 2);
+    fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
     var offset = o.readUInt32BE(0);
 
-    var record_header = new Buffer(HEADER.SIZE); 
+    var record_header = new Buffer(RECORD_HEADER.SIZE); 
     
     while(offset != EOL) {        
         fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
-        var curr_key_size = record_header.readUInt32BE(HEADER.KEY_LENGTH_OFFSET);
+        var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
-        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + HEADER.SIZE);                
+        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);                
         if (Comparator.compare(key, curr_key) === Comparator.EQUAL) {
-            var curr_value_size = record_header.readUInt32BE(HEADER.VALUE_LENGTH_OFFSET);
+            var curr_value_size = record_header.readUInt32BE(RECORD_HEADER.VALUE_LENGTH_OFFSET);
             var curr_value = new Buffer(curr_value_size);
-            fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + HEADER.SIZE + curr_key_size);
+            fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + RECORD_HEADER.SIZE + curr_key_size);
             return curr_value.toString();
         } else if (Comparator.compare(key, curr_key) === Comparator.LESS) {
-            offset = record_header.readUInt32BE(HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
         } else if (Comparator.compare(key, curr_key) === Comparator.MORE) {
             return null;
         }
@@ -147,25 +160,25 @@ Driver.prototype.remove = function(key) {
         
     var index = Driver.hashCode(key) % TABLE_ELEMETS;
     var o = new Buffer(4);
-    fs.readSync(this.fd, o, 0, o.length, index << 2);
+    fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
     var offset = o.readUInt32BE(0);
     
     var pred_offset = null;
 
-    var record_header = new Buffer(HEADER.SIZE);
-    record_header.writeUInt32BE(EOL, HEADER.NEXT_OFFSET);
+    var record_header = new Buffer(RECORD_HEADER.SIZE);
+    record_header.writeUInt32BE(EOL, RECORD_HEADER.NEXT_OFFSET);
 
     while(offset != EOL) {
         fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
-        var curr_key_size = record_header.readUInt32BE(HEADER.KEY_LENGTH_OFFSET);
+        var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
-        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + HEADER.SIZE);
+        fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
         if (Comparator.compare(key, curr_key) === Comparator.EQUAL) {
-            offset = record_header.readUInt32BE(HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
             break;            
         } else if (Comparator.compare(key, curr_key) === Comparator.LESS) {
             pred_offset = offset;
-            offset = record_header.readUInt32BE(HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
         } else if (Comparator.compare(key, curr_key) === Comparator.MORE) {
             return false;
         }
@@ -178,7 +191,7 @@ Driver.prototype.remove = function(key) {
     } else {
         var o = new Buffer(4);
         o.writeUInt32BE(EOL, 0);
-        fs.writeSync(this.fd, o, 0, o.length, index << 2);
+        fs.writeSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
     }
     
     if (this.cache) {
