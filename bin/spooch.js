@@ -6,7 +6,7 @@ var Storage = require("../libs/storage/storage.js");
 
 var Spooch = function(options) {
     var self = this;
-        
+
     this.storage = new Storage
         (
             options.database.path,
@@ -60,12 +60,17 @@ var Spooch = function(options) {
 }
 
 Spooch.prototype.start = function() {
-    this.server.start();
-    this.storage.open(function() {});
+    var self = this;    
+    this.storage.open(function() {
+        self.server.start();
+    });
 }
 
 Spooch.prototype.stop = function() {
-    this.server.stop();
+    var self = this;    
+    this.storage.close(function() {
+        self.server.stop();
+    });
 }
 
 var options = require(path.normalize(__dirname + "/../conf/spooch.conf"));

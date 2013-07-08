@@ -1,6 +1,7 @@
 
 var fs = require("fs");
 var util = require("util");
+var Cache = require("./cache");
 
 var HEADER = { NEXT_OFFSET: 0, KEY_LENGTH_OFFSET: 4, VALUE_LENGTH_OFFSET: 8, SIZE: 12 };
 var EOL = 0xFFFFFFFF;
@@ -19,54 +20,6 @@ var Comparator = {
 }
 
 
-var Cache = function(limit) {
-    this.cache = {};
-    this.potential = {};
-    this.limit = limit || 1024;
-    this.size = 0;
-}
-
-Cache.prototype.clear = function() {
-    this.cache = {};
-    this.potential = {};
-    this.size = 0;
-}
-
-Cache.prototype.add = function(key, value) {
-    var pot = 0;
-    if (this.size > this.limit) {
-        while (( this.size >> 1 ) > this.limit) {
-            for(var k in this.potential) {
-                if (this.potential[k] < pot) {
-                    this.remove(k);
-                }
-            }
-            pot++;
-        }        
-        for(var k in this.cache) {
-            this.potential[k] = 0;
-        }                    
-    }
-
-    this.cache[key] = value;
-    this.potential[key] = 0;        
-}
-
-Cache.prototype.remove = function(key) {
-    delete this.cache[key];
-    delete this.potential[key];
-    this.size--;
-}
-
-Cache.prototype.get = function(key) {
-    if (this.potential[key]) {
-        this.potential[key]++;
-    }
-    return this.cache[key];
-}
-
-
-
 var Driver = module.exports = function(filename) {
     this.filename = filename; 
 }
@@ -78,15 +31,17 @@ Driver.prototype.open = function() {
         this.fd = fs.openSync(this.filename, "r+");
         this.eof = fs.fstatSync(this.fd).size;
     } else {
-        this.fd = fs.openSync(this.filename, "w+");
-        var table = new Buffer(TABLE_SIZE); table.fill(0xFF);
+        this.fd = fs.openSync(this.filename, "wx+");
+        var table = new Buffer(TABLE_SIZE); table.fill(EOL & 0xFF);
         this.eof = fs.writeSync(this.fd, table, 0, TABLE_SIZE, 0);        
-    }   
+    }
+    return true;
 }
 
 Driver.prototype.close = function() {
     this.cache = null;
     fs.closeSync(this.fd);
+    return true;
 }
 
 Driver.prototype.set = function(key, value) {

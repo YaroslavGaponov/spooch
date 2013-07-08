@@ -1,54 +1,9 @@
 
-
-var Driver = require('./driver');
-
-var driver = null;
-
-process.on('message', function(request) {
-    var result = error = null;
-    try {
-        switch(request.type) {
-            case "create":                
-                driver = new Driver(request.filename);
-                result = true;
-                break;
-            case "open":                
-                driver.open();
-                result = true;
-                break;
-            case "close":
-                driver.close();
-                result = true;
-                break;
-            case "set":
-                result = driver.set(request.key, request.value);
-                break;
-            case "get":
-                result = driver.get(request.key);
-                break;
-            case "remove":
-                result = driver.remove(request.key);
-                break;
-        }
-    } catch(ex) {
-        error = ex;
-    } finally {
-        if (request.id) {
-            process.send({ "id": request.id, "result": result, "error": error });
-        }
-    }
-});
-
-
-
-
-var cp = require('child_process');
-
 var Chunk = module.exports = function(filename) {
     var self = this;
-    
-    this.chunk = cp.fork(__filename);
-    this.chunk.send( { "type": "create", "filename": filename } );
+
+    var cp = require('child_process');    
+    this.chunk = cp.fork(__filename, [filename]);    
     
     this.callbacks = {};
     this.id = 0;
@@ -57,14 +12,14 @@ var Chunk = module.exports = function(filename) {
         if (response.id) {
             if (self.callbacks[response.id]) {
                 self.callbacks[response.id](response.error, response.result);
-                delete self.callbacks[response.id];
+                self._removeCallback(response.id);
             }
         }
     });
     
 }
 
-Chunk.prototype.register = function(cb) {
+Chunk.prototype._addCallback = function(cb) {
     if (cb && typeof cb === "function") {
         var id = ++this.id;
         this.callbacks[id] = cb;
@@ -73,26 +28,74 @@ Chunk.prototype.register = function(cb) {
     return null;
 }
 
+Chunk.prototype._removeCallback = function(id) {
+    if (id) {
+        if (this.callbacks[id]) {
+            delete this.callbacks[id];
+        }
+    }
+}
+
+
+Chunk.prototype._sendCmdToChunk = function(type) {
+    var self = this;
+    return function() {
+        var args = Array.prototype.slice.call(arguments);
+        return function(cb) {            
+            self.chunk.send( { "type": type, "id": self._addCallback(cb),  args: args } );
+        }
+    }
+}
+
 Chunk.prototype.open = function(cb) {    
-    this.chunk.send( { "id": this.register(cb), "type": "open" } );
+    this._sendCmdToChunk("open")()(cb);
 }
 
 Chunk.prototype.close = function(cb) {
-    this.chunk.send( { "id": this.register(cb), "type": "close" } );
+    this._sendCmdToChunk("close")()(cb);
 }
-
 
 Chunk.prototype.set = function(key, value, cb) {
-    this.chunk.send( { "id": this.register(cb), "type": "set", "key": key, "value": value } );
+    this._sendCmdToChunk("set")(key, value)(cb);
 }
 
-
 Chunk.prototype.get = function(key, cb) {
-    this.chunk.send( { "id": this.register(cb), "type": "get", "key": key } );
+    this._sendCmdToChunk("get")(key)(cb);
 }
 
 Chunk.prototype.remove = function(key, cb) {
-    this.chunk.send( { "id": this.register(cb), "type": "remove", "key": key } );
+    this._sendCmdToChunk("remove")(key)(cb);
 }
+
+
+var driver = null;
+
+process.on('message', function(request) {    
+    var result = error = null;
+
+    try {        
+        if (!driver) {
+            var Driver = require('./driver');
+            driver = new Driver(process.argv[2]);
+        }
+                
+        if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {
+            throw new Error("Not support method");    
+        }
+        
+        result =
+            driver[request.type]
+                .apply(driver, request.args);
+        
+    } catch(ex) {
+        error = ex;
+        
+    } finally {
+        if (request.id) {
+            process.send({ "id": request.id, "result": result, "error": error });
+        }
+    }
+});
+
 
 

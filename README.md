@@ -7,6 +7,7 @@ Spooch is NoSQL database server with RESTFul API in pure Node.JS
 
 ## Start
 
+`mkdir ./db`
 `./bin/spoochd start`
 
 ## Stop
@@ -19,5 +20,6 @@ Spooch is NoSQL database server with RESTFul API in pure Node.JS
 
 ## Check speed for disk storage
 
+`mkdir ./lib/storage/test/db`
 `node ./lib/storage/test/test.js`
 

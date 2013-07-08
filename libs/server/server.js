@@ -29,11 +29,11 @@ var Server = module.exports = function(options) {
             } catch (e) {}
             router(req.method, req.url, json, function(error, result) {
                 if (error) {
-                    res.writeHead(500, {'Content-Type': 'application/json '});
-                    res.end(JSON.stringify(error));                    
+                    res.writeHead(500, {'Content-Type': 'application/json'});
+                    res.end(JSON.stringify(error));
                 } else {
-                    res.writeHead(200, {'Content-Type': 'application/json '});
-                    res.end(JSON.stringify(result));
+                    res.writeHead(200, {'Content-Type': 'application/json'});
+                    res.end(JSON.stringify(result));                    
                 }
             });
         });            
