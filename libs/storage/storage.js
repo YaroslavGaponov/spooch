@@ -1,5 +1,6 @@
 
 
+var os = require("os");
 var util = require("util");
 var path = require("path");
 var Chunk = require("./chunk");
@@ -7,6 +8,7 @@ var Chunk = require("./chunk");
 
 var Storage = module.exports = function(directory, shards) {
     this.chunks = [];
+    shards = shards ? shards : os.cpus().length;
     for(var i=0; i<shards; i++) {
         var chunk = new Chunk(path.join(directory, util.format("%s.%s", "chunk", i)));
         this.chunks.push(chunk);
@@ -56,11 +58,11 @@ Storage.prototype.remove = function(key, cb) {
     this.chunks[instance].remove(key, cb);
 }
 
-Storage.hashCode = function (key) {
+Storage.hashCode = function (s) {
     var hash = 0;
-    for (var i=0; i<key.length; i++) {
-        hash = ((hash << 5) - hash) + key.charCodeAt(i);
+    for (var i=0; i<s.length; i++) {
+        hash = ((hash << 5) - hash) + s.charCodeAt(i);
         hash = hash & hash;
     }    
-    return hash & 0xffff;
+    return hash & 0x7fffffff;
 }

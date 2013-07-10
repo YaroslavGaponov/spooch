@@ -88,7 +88,7 @@ process.on('message', function(request) {
                 .apply(driver, request.args);
         
     } catch(ex) {
-        error = ex;
+        error = ex.toString();
         
     } finally {
         if (request.id) {

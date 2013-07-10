@@ -38,6 +38,11 @@ Cache.prototype.remove = function(key) {
     this.size--;
 }
 
+Cache.prototype.exists = function(key) {
+    return this.cache[key] ? true : false;
+}
+
+
 Cache.prototype.get = function(key) {
     if (this.potential[key]) {
         this.potential[key]++;

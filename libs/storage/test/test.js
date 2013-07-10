@@ -9,7 +9,7 @@ var storage = new Storage(__dirname + "/db", 10);
 
 var processed = 0;
 util.print("\n# inserting...\n");
-storage.open(function(err, res) {
+storage.open(function(err, res) {    
     var start = (new Date).getTime();
     for(var i=0; i<RECORDS; i++) {                
         storage.set("test"+i, "hello world"+i, function(err, res) {
