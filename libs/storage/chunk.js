@@ -1,10 +1,12 @@
 
+var errors = require("./errors");
+
 var Chunk = module.exports = function(filename) {
     var self = this;
-
+    
     var cp = require('child_process');    
     this.chunk = cp.fork(__filename, [filename]);    
-    
+        
     this.callbacks = {};
     this.id = 0;
     
@@ -41,7 +43,10 @@ Chunk.prototype._sendCmdToChunk = function(type) {
     var self = this;
     return function() {
         var args = Array.prototype.slice.call(arguments);
-        return function(cb) {            
+        return function(cb) {
+            if (!self.chunk.connected) {
+                return cb(errors.InternalError("chunk is offline"), null);
+            }
             self.chunk.send( { "type": type, "id": self._addCallback(cb),  args: args } );
         }
     }
@@ -80,7 +85,7 @@ process.on('message', function(request) {
         }
                 
         if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {
-            throw new Error("Not support method");    
+            throw error.NotImplemented("not support driver method");    
         }
         
         result =
@@ -88,7 +93,7 @@ process.on('message', function(request) {
                 .apply(driver, request.args);
         
     } catch(ex) {
-        error = ex.toString();
+        error = error.InternalError(ex.toString());
         
     } finally {
         if (request.id) {

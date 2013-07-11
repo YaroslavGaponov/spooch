@@ -2,7 +2,7 @@
 Info
 ========
 
-Spooch is NoSQL database server with RESTFul API in pure Node.JS
+Spooch is NoSQL database server with REST API in pure Node.JS
 
 
 ## Start
