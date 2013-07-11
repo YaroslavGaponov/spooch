@@ -1,7 +1,7 @@
 
 var errors = require("../utils/errors");
 
-var SOURCE = "Storage";
+var SOURCE = "Server";
 
 var ERRORS = [
     [1, 'BadRequest',       'The request cannot be fulfilled due to bad syntax.'],

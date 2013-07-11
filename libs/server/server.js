@@ -1,7 +1,8 @@
 
-var http = require('http');
-var url = require('url');
-var qs = require('querystring');
+var http = require("http");
+var url = require("url");
+var qs = require("querystring");
+var errors = require("./errors");
 
 var Server = module.exports = function(options) {
     var self = this;
