@@ -32,8 +32,12 @@ var Comparator = {
     MORE: 1, LESS: -1, EQUAL:  0,    
     compare:
         function(a, b) {
-            if (a > b) return this.MORE;
-            if (a < b) return this.LESS;
+            if (a.length > b.length) return this.MORE;
+            if (a.length < b.length) return this.LESS;
+            for(var i=0; i<a.length; i++) {
+                if (a.charCodeAt(i) > b.charCodeAt(i)) return this.MORE;
+                if (a.charCodeAt(i) < b.charCodeAt(i)) return this.LESS;
+            }
             return this.EQUAL;
         }
 }
@@ -102,7 +106,7 @@ Driver.prototype.set = function(key, value) {
         var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
         fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
-        var compared = Comparator.compare(key, curr_key);
+        var compared = Comparator.compare(key, Driver.stringify(curr_key));
         if (compared === Comparator.EQUAL) {
             offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
             break;            
@@ -160,7 +164,7 @@ Driver.prototype.get = function(key) {
         var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
         fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
-        var compared = Comparator.compare(key, curr_key);
+        var compared = Comparator.compare(key, Driver.stringify(curr_key));
         if (compared === Comparator.EQUAL) {
             var curr_value_size = record_header.readUInt32BE(RECORD_HEADER.VALUE_LENGTH_OFFSET);
             var curr_value = new Buffer(curr_value_size);
@@ -192,7 +196,7 @@ Driver.prototype.remove = function(key) {
         var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
         var curr_key = new Buffer(curr_key_size);
         fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
-        var compared = Comparator.compare(key, curr_key);
+        var compared = Comparator.compare(key, Driver.stringify(curr_key));
         if (compared === Comparator.EQUAL) {
             offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
             break;            
