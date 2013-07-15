@@ -1,41 +1,41 @@
 
-var Cache = module.exports = function(limit) {
-    this.cache = {};
-    this.potential = {};
-    this.limit = limit || 1024;
-    this.size = 0;
+var Entry = function(value, potential) {
+    this.value = value;
+    this.potential = potential;
+}
+
+var Cache = module.exports = function(limit, interval) {
+    var self = this;
+    
+    this.limit = limit || Infinity;
+    this.cache = {};    
+    this.potentials = {};
+    this.potential = this.size = this.min = 0;
+        
+    setInterval(function() { self.trim(); }, interval || 5000);
 }
 
 Cache.prototype.clear = function() {
     this.cache = {};
-    this.potential = {};
-    this.size = 0;
+    this.potentials = {};    
+    this.potential = this.size = this.min = 0;    
 }
 
-Cache.prototype.add = function(key, value) {
-    var pot = 0;
-    if (this.size > this.limit) {
-        while (( this.size >> 1 ) > this.limit) {
-            for(var k in this.potential) {
-                if (this.potential[k] < pot) {
-                    this.remove(k);
-                }
-            }
-            pot++;
-        }        
-        for(var k in this.cache) {
-            this.potential[k] = 0;
-        }                    
-    }
-
-    this.cache[key] = value;
-    this.potential[key] = 0;        
+Cache.prototype.add = function(key, value) {    
+    this.remove(key);
+    var potential = this.potential++;
+    this.potentials[potential] = key;
+    this.cache[key] = new Entry(value, potential);
+    this.size++;
 }
 
 Cache.prototype.remove = function(key) {
-    delete this.cache[key];
-    delete this.potential[key];
-    this.size--;
+    if (this.cache[key]) {
+        var potential = this.cache[key].potential;
+        delete this.potentials[potential];
+        delete this.cache[key];
+        this.size--;
+    }
 }
 
 Cache.prototype.exists = function(key) {
@@ -44,8 +44,34 @@ Cache.prototype.exists = function(key) {
 
 
 Cache.prototype.get = function(key) {
-    if (this.potential[key]) {
-        this.potential[key]++;
+    if (this.cache[key]) {
+        var potential = this.cache[key].potential;
+        delete this.potentials[potential];
+        
+        potential = this.potential++;
+        this.cache[key].potential = potential;
+        this.potentials[potential] = key;
+        
+        return this.cache[key].value;
     }
-    return this.cache[key];
+    return undefined;
 }
+
+
+Cache.prototype.trim = function() {
+    if (this.size > this.limit) {
+        for(var p=this.min; p<=this.potential; p++) {
+            if (this.potentials[p]) {
+                this.min = p;
+                this.remove(this.potentials[p]);
+                if (this.size < this.limit) {
+                    return;
+                }
+            }            
+        }
+        this.min = this.potential;
+    }    
+}
+
+
+

@@ -49,7 +49,7 @@ var Driver = module.exports = function(filename) {
 
 Driver.prototype.open = function() {
     this.buffers = {};    
-    this.cache = new Cache();
+    this.cache = new Cache(1024);
     
     var exists = fs.existsSync(this.filename);    
     if (exists) {
