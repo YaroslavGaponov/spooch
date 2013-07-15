@@ -60,16 +60,15 @@ Cache.prototype.get = function(key) {
 
 Cache.prototype.trim = function() {
     if (this.size > this.limit) {
-        for(var p=this.min; p<=this.potential; p++) {
-            if (this.potentials[p]) {
-                this.min = p;
-                this.remove(this.potentials[p]);
+        for(var pot=this.min; pot<=this.potential; pot++) {
+            if (this.potentials[pot]) {
+                this.remove(this.potentials[pot]);
                 if (this.size < this.limit) {
-                    return;
+                    break;
                 }
             }            
         }
-        this.min = this.potential;
+        this.min = pot;
     }    
 }
 
