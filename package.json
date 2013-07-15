@@ -1,6 +1,6 @@
 {
   "name": "spooch",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "NoSQL database server with REST API in pure Node.JS",
   "main": "./bin/spoochd",
   "bin": {
