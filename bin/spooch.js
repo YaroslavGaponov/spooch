@@ -1,6 +1,8 @@
 
+var fs = require("fs");
 var path  = require("path");
 
+var errors = require("./errors.js");
 var Server = require("../libs/server/server.js");
 var Storage = require("../libs/storage/storage.js");
 
@@ -13,15 +15,28 @@ var Spooch = function(options) {
             options.database.shards
         );
         
+        
+    this.plugins = {};
+    var list = fs.readdirSync(options.plugins.path);
+    for(var i=0; i<list.length; i++) {
+        this.plugins[list[i]] = require(options.plugins.path + "/" +  list[i]).Plugin();        
+    }
+    
     this.server = new Server(options.server);
     this.server.addHandler(
             function(method, paths, params, data, cb) {
-
+                
+                if (paths && paths.length > 0) {
+                    if (self.plugins[paths[0]]) {
+                        return self.plugins[paths[0]].onRequest(method, paths, params, data, cb);
+                    }
+                }
+                
                 switch(method) {
                     
                     case "GET":
                         if (!paths || paths.length !== 1) {
-                            return cb( { "error": "incorrect input data" } );
+                            return cb(errors.BadRequest("incorrect input data"));
                         }
                         
                         self.storage.get(paths[0], function(err, res) {
@@ -32,7 +47,7 @@ var Spooch = function(options) {
                     
                     case "POST":
                         if (!paths || paths.length !== 1 || !data) {
-                            return cb( { "error": "incorrect input data" } );                        
+                            return cb(errors.BadRequest("incorrect input data"));                        
                         }
                         
                         self.storage.set(paths[0], JSON.stringify(data), function(err, res) {
@@ -43,7 +58,7 @@ var Spooch = function(options) {
                     
                     case "DELETE":
                         if (!paths || paths.length !== 1) {
-                            return cb( { "error": "incorrect input data" } );                        
+                            return cb(errors.BadRequest("incorrect input data"));                        
                         }
                         
                         self.storage.remove(paths[0], function(err, res) {
@@ -53,7 +68,7 @@ var Spooch = function(options) {
                         break;
                     
                     default:
-                        return cb( { "error": "method is not supported" } );                        
+                        return cb(errors.NotImplemented("method is not supported"));                        
                 }
             }
         );    
@@ -63,12 +78,18 @@ Spooch.prototype.start = function() {
     var self = this;    
     this.storage.open(function() {
         self.server.start();
+        for(var plugin in self.plugins) {
+            self.plugins[plugin].onStart(self.storage);
+        }
     });
 }
 
 Spooch.prototype.stop = function() {
     var self = this;    
     this.storage.close(function() {
+        for(var plugin in self.plugins) {
+            self.plugins[plugin].onStop();
+        }        
         self.server.stop();
     });
 }

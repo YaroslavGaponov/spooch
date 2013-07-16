@@ -23,3 +23,12 @@ Spooch is NoSQL database server with REST API in pure Node.JS
 `mkdir ./lib/storage/test/db`
 `node ./lib/storage/test/test.js`
 
+## Pluggins
+
+Spooch supports plugins.
+As example, you can work with value as object or as array through build-in "_array" and "_object" plugins.
+Other you can develop own plugins.
+
+Some examples:
+`./test/array.sh` or `./test/object.sh`
+

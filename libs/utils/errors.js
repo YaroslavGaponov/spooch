@@ -21,7 +21,7 @@ var createErrorClasses = function(source, errors) {
         
         util.inherits(Err, Error);
         
-        var err = new Err(code, name, details);
+        var err = new Err(source, code, name, details);
         
         errorClasses[err.name] = function(cause) {
             err.cause = cause;
