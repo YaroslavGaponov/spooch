@@ -18,97 +18,96 @@ ArrayPlugin.prototype.onStop = function() {
 }
 
 ArrayPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
+    var method = method.toLowerCase();
+    if (this[method]) {
+        this[method](paths, params, data, cb);
+    } else {    
+        cb(errors.NotImplemented("method is not supported"));
+    }
+}
+
+
+
+ArrayPlugin.prototype.get = function(paths, params, data, cb) {
     var self = this;
     
-    switch(method) {
+    if (!paths || paths.length < 1) {
+        return cb(errors.BadRequest("incorrect input data"));
+    }
+    
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
         
-        case "GET":
-            if (!paths || paths.length < 2) {
-                return cb(errors.BadRequest("incorrect input data"));
-            }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                
-                var arr = JSON.parse(res);
-                if (!arr) {
-                    return cb(null, null);                        
-                }
-                if (!util.isArray(arr)) {
-                    return cb(errors.InternalError("incorrect data type"))
-                }
-                
-                if (paths.length == 3) {
-                    var index  = parseInt(paths.pop());
-                    return cb(null, arr[index]);
-                }
-                return cb(null, arr);                        
-            });
-            
-            break;
+        var arr = JSON.parse(res);
+        if (!arr) {
+            return cb(null, null);                        
+        }
+        if (!util.isArray(arr)) {
+            return cb(errors.InternalError("incorrect data type"));
+        }
         
-        case "POST":
-            if (!paths || paths.length < 2 || !data) {
-                return cb(errors.BadRequest("incorrect input data"));                        
-            }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                
-                var arr = res ? JSON.parse(res) : [];
-                if (!util.isArray(arr)) {
-                    return cb(errors.InternalError("incorrect data type"))
-                }
-                
-                arr.push(data);
-                
-                self.storage.set(paths[1], JSON.stringify(arr), function(err, res) {
+        switch (paths.length) {
+            case 1: return cb(null, arr);
+            case 2: return cb(null, arr[parseInt(paths.pop())]);
+            default: return cb(errors.BadRequest("incorrect input data"));
+        }
+        
+    });    
+}
+
+ArrayPlugin.prototype.post = function(paths, params, data, cb) {
+    var self = this;
+    
+    if (!paths || paths.length < 1 || !data) {
+        return cb(errors.BadRequest("incorrect input data"));                        
+    }
+    
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
+        
+        var arr = res ? JSON.parse(res) : [];
+        if (!util.isArray(arr)) {
+            return cb(errors.InternalError("incorrect data type"))
+        }
+        
+        arr.push(data);
+        
+        self.storage.set(paths[0], JSON.stringify(arr), function(err, res) {
+            return cb(err, {result: res}); 
+        })
+    });    
+}
+
+ArrayPlugin.prototype.delete = function(paths, params, data, cb) {
+    var self = this;
+    
+    if (!paths || paths.length < 1) {
+        return cb(errors.BadRequest("incorrect input data"));                        
+    }
+    
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
+        
+        var arr = JSON.parse(res);
+        if (!arr) {
+            return cb(errors.BadRequest("data is not found"));
+        }
+        if (!util.isArray(arr)) {
+            return cb(errors.InternalError("incorrect data type"))
+        }
+        
+        switch(paths.length) {
+            case 1:
+                self.storage.remove(paths[0], function(err, res) {
+                    return cb(err, {result: res});
+                });
+                break;                        
+            case 2:
+                arr = arr.splice(parseInt(paths.pop()), 1);
+                self.storage.set(paths[0], JSON.stringify(arr), function(err, res) {
                     return cb(err, {result: res}); 
-                })
-            });
-            
-            break;
-        
-        case "DELETE":
-            if (!paths || paths.length < 2) {
-                return cb(errors.BadRequest("incorrect input data"));                        
-            }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                
-                var arr = JSON.parse(res);
-                console.log(arr);
-                if (!arr) {
-                    return cb(errors.BadRequest("data is not found"));
-                }
-                if (!util.isArray(arr)) {
-                    return cb(errors.InternalError("incorrect data type"))
-                }
-                
-                if (paths.length > 2) {
-                    var index  = parseInt(paths.pop());
-                    var count = 1;
-                    if (paths.length > 3) {
-                        count  = index;
-                        index = parseInt(paths.pop());
-                    }
-                    
-                    arr.splice(index, count);
-                    
-                    self.storage.set(paths[1], JSON.stringify(arr), function(err, res) {
-                        return cb(err, {result: res}); 
-                    })
-                } else {
-                    self.storage.remove(paths[1], function(err, res) {
-                        return cb(err, {result: res});
-                    })                    
-                }
-            });
-                
-            break;
-        
-        default:
-            return cb(errors.NotImplemented("method is not supported"));                        
-    }    
+                });
+                break;
+        }                
+    });
 }

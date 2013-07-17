@@ -28,7 +28,8 @@ var Spooch = function(options) {
                 
                 if (paths && paths.length > 0) {
                     if (self.plugins[paths[0]]) {
-                        return self.plugins[paths[0]].onRequest(method, paths, params, data, cb);
+                        var name = paths.shift();
+                        return self.plugins[name].onRequest(method, paths, params, data, cb);
                     }
                 }
                 

@@ -1,5 +1,6 @@
 
 var errors = require("./errors.js");
+var util = require("util");
 
 var ObjectPlugin = module.exports.Plugin = function(options) {
     if (this instanceof ObjectPlugin) {
@@ -17,87 +18,97 @@ ObjectPlugin.prototype.onStop = function() {
 }
 
 ObjectPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
+    var method = method.toLowerCase();
+    if (this[method]) {
+        this[method](paths, params, data, cb);
+    } else {    
+        cb(errors.NotImplemented("method is not supported"));
+    }
+}
+
+
+ObjectPlugin.prototype.get = function(paths, params, data, cb) {
     var self = this;
     
-    switch(method) {
+    if (!paths || paths.length < 1) {
+        return cb(errors.BadRequest("incorrect input data"));
+    }
+    
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
         
-        case "GET":
-            if (!paths || paths.length < 2) {
-                return cb(errors.BadRequest("incorrect input data"));
+        var obj = JSON.parse(res);
+        for(var i=1; i<paths.length; i++) {
+            if (obj)  {
+                obj = obj[paths[i]];
+            } else {
+                return cb(null, null);
             }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                var obj = JSON.parse(res);
-                for(var i=2; i<paths.length; i++) {
-                    if (obj)  { obj = obj[paths[i]]; }                   
-                }
-                return cb(null, obj) ;                        
-            });
-            
-            break;
-        
-        case "POST":
-            if (!paths || paths.length < 2 || !data) {
-                return cb(errors.BadRequest("incorrect input data"));                        
-            }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                
-                var obj = data;
-                if (paths.length > 2) {
-                    var ref = obj = JSON.parse(res) || {}
-                    for(var i=2; i<paths.length-1;i++) {
-                        if (!ref[paths[i]]) {
-                            ref[paths[i]] = {};
-                        } 
-                        ref = ref[paths[i]];                        
-                    }
-                    ref[paths.pop()] = data;                    
-                }
+        }
+        return cb(null, obj) ;                        
+    });
+    
+}
 
-                self.storage.set(paths[1], JSON.stringify(obj), function(err, res) {
-                    return cb(err, {result: res}); 
-                })
-            });
+ObjectPlugin.prototype.post = function(paths, params, data, cb) {
+    var self = this;
+    
+    if (!paths || paths.length < 1 || !data) {
+        return cb(errors.BadRequest("incorrect input data"));                        
+    }
             
-            break;
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
         
-        case "DELETE":
-            if (!paths || paths.length < 2) {
-                return cb(errors.BadRequest("incorrect input data"));                        
+        var obj = data;
+        if (paths.length > 1) {
+            var ref = obj = JSON.parse(res) || {}
+            for(var i=1; i<paths.length-1;i++) {
+                if (!ref[paths[i]]) {
+                    ref[paths[i]] = {};
+                } 
+                ref = ref[paths[i]];                        
             }
-            
-            self.storage.get(paths[1], function(err, res) {
-                if (err) return cb(err, null);
-                
-                var obj = null;
-                if (paths.length > 2) {
-                    var ref = obj = JSON.parse(res) || {}
-                    for(var i=2; i<paths.length-1;i++) {
-                        if (!ref[paths[i]]) {
-                            ref[paths[i]] = {};
-                        } 
-                        ref = ref[paths[i]];                        
-                    }
-                    delete ref[paths.pop()];                    
-                }
+            ref[paths.pop()] = data;                    
+        }
 
-                if (obj) {
-                    self.storage.set(paths[1], JSON.stringify(obj), function(err, res) {
-                        return cb(err, {result: res}); 
-                    })
-                } else {
-                    self.storage.remove(paths[0], function(err, res) {
-                        return cb(err, {result: res});
-                    })                    
-                }
-            });
-                
-            break;
+        self.storage.set(paths[0], JSON.stringify(obj), function(err, res) {
+            return cb(err, {result: res}); 
+        })
+    });
+    
+}
+
+ObjectPlugin.prototype.delete = function(paths, params, data, cb) {
+    var self = this;
+    
+    if (!paths || paths.length < 1) {
+        return cb(errors.BadRequest("incorrect input data"));                        
+    }
+    
+    self.storage.get(paths[0], function(err, res) {
+        if (err) return cb(err, null);
         
-        default:
-            return cb(errors.NotImplemented("method is not supported"));                        
-    }    
+        var obj = null;
+        if (paths.length > 1) {
+            var ref = obj = JSON.parse(res) || {}
+            for(var i=1; i<paths.length-1; i++) {
+                if (!ref[paths[i]]) {
+                    ref[paths[i]] = {};
+                } 
+                ref = ref[paths[i]];                        
+            }
+            delete ref[paths.pop()];                    
+        }
+
+        if (obj) {
+            self.storage.set(paths[0], JSON.stringify(obj), function(err, res) {
+                return cb(err, {result: res}); 
+            })
+        } else {
+            self.storage.remove(paths[0], function(err, res) {
+                return cb(err, {result: res});
+            })                    
+        }
+    });
 }
