@@ -89,6 +89,28 @@ Driver.prototype.close = function() {
     return true;
 }
 
+Driver.prototype.forEach = function(cb) {
+    for(var index=0; index<TABLE.TABLE_ELEMETS; index++) {
+        
+        var o = this._newBuffer(4);
+        fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
+        var offset = o.readUInt32BE(0);
+        
+        var record_header = this._newBuffer(RECORD_HEADER.SIZE); 
+    
+        while(offset != TABLE.EOL) {        
+            fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
+            var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
+            var curr_key = new Buffer(curr_key_size);
+            fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
+            var curr_value_size = record_header.readUInt32BE(RECORD_HEADER.VALUE_LENGTH_OFFSET);
+            var curr_value = new Buffer(curr_value_size);
+            fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + RECORD_HEADER.SIZE + curr_key_size);
+            cb(Driver.stringify(curr_key), Driver.stringify(curr_value));
+        }
+    }    
+}
+
 Driver.prototype.set = function(key, value) {
     
     key = Driver.stringify(key);
@@ -169,7 +191,7 @@ Driver.prototype.get = function(key) {
             var curr_value_size = record_header.readUInt32BE(RECORD_HEADER.VALUE_LENGTH_OFFSET);
             var curr_value = new Buffer(curr_value_size);
             fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + RECORD_HEADER.SIZE + curr_key_size);
-            return curr_value.toString();
+            return Driver.stringify(curr_value);
         } else if (compared === Comparator.LESS) {
             offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
         } else {
