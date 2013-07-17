@@ -1,3 +1,6 @@
+/*
+ * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
+ */
 
 var util = require("util");
 var errors = require("./errors.js");

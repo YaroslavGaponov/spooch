@@ -1,3 +1,6 @@
+/*
+ * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
+ */
 
 var http = require("http");
 var url = require("url");

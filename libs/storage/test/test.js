@@ -1,3 +1,8 @@
+#!/usr/bin/env node
+
+/*
+ * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
+ */
 
 var assert = require("assert");
 var util = require("util");

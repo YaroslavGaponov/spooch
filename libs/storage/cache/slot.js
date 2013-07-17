@@ -1,3 +1,6 @@
+/*
+ * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
+ */
 
 var Entry = function(key, value) {
     this.key = key;
