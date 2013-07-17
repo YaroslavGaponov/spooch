@@ -85,7 +85,7 @@ process.on('message', function(request) {
         }
                 
         if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {
-            throw error.NotImplemented("not support driver method");    
+            throw errors.NotImplemented("not support driver method");    
         }
         
         result =
@@ -93,7 +93,7 @@ process.on('message', function(request) {
                 .apply(driver, request.args);
         
     } catch(ex) {
-        error = error.InternalError(ex.toString());
+        error = errors.InternalError(ex.toString());
         
     } finally {
         if (request.id) {
