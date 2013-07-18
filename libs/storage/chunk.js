@@ -84,7 +84,7 @@ process.on('message', function(request) {
     try {        
         if (!driver) {
             var Driver = require('./driver');
-            driver = new Driver(process.argv[2]);
+            driver = Driver.create(process.argv[2]);
         }
                 
         if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {
