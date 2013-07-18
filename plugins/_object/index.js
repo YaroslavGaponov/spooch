@@ -22,7 +22,7 @@ ObjectPlugin.prototype.onStop = function() {
 
 ObjectPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
     var method = method.toLowerCase();
-    if (this[method]) {
+    if (this[method] && (typeof this[method] === "function")) {
         this[method](paths, params, data, cb);
     } else {    
         cb(errors.NotImplemented("method is not supported"));
