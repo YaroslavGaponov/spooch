@@ -15,7 +15,7 @@ var Chunk = module.exports = function(filename) {
     
     this.chunk.on("message", function(response) {
         if (response.id) {
-            if (self.callbacks[response.id]) {
+            if (self.callbacks[response.id] && (typeof self.callbacks[response.id] === "function")) {
                 self.callbacks[response.id](response.error, response.result);
                 self._removeCallback(response.id);
             }
@@ -90,7 +90,7 @@ process.on('message', function(request) {
     try {        
         if (!driver) {
             var Driver = require('./driver');
-            driver = Driver.create(process.argv[2]);
+            driver = Driver.create(Driver.CONFIGS.FILE_LRU, process.argv[2]);
         }
                 
         if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {

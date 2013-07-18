@@ -44,7 +44,8 @@ var Spooch = function(options) {
                         }
                         
                         self.storage.get(paths[0], function(err, res) {
-                           return cb(err, JSON.parse(res)) ;                        
+                           if (err) return cb(err, null);
+                           return cb(null, JSON.parse(res))
                         });
                         
                         break;

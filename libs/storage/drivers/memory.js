@@ -27,7 +27,7 @@ Driver.prototype.set = function(key, value) {
 
 Driver.prototype.get = function(key) {
     key = Driver.stringify(key);
-    this.data[key];
+    return this.data[key] || null;
 }
 
 Driver.prototype.remove = function(key) {
