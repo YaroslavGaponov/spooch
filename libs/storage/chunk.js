@@ -75,6 +75,12 @@ Chunk.prototype.remove = function(key, cb) {
     this._sendCmdToChunk("remove")(key)(cb);
 }
 
+Chunk.prototype.disconnect = function() {
+    if (this.chunk.connected) {
+        this.chunk.disconnect();
+    }
+}
+
 
 var driver = null;
 
@@ -102,6 +108,12 @@ process.on('message', function(request) {
         if (request.id) {
             process.send({ "id": request.id, "result": result, "error": error });
         }
+    }
+});
+
+process.on("disconnect", function() {
+    if (driver) {
+        process.exit();
     }
 });
 

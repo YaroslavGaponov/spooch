@@ -32,16 +32,23 @@ Storage.prototype.open = function(cb) {
 }
 
 Storage.prototype.close = function(cb) {
+    var self = this;
     var total = this.chunks.length;
     var errors = [], results = [];
     this.chunks.forEach(function(chunk) {
-        chunk.close(function(err, res) {
+        chunk.close(function(err, res) {            
             errors.push(err);
             results.push(res);
             if (--total === 0) {
                 return cb(errors, results);
             }            
         });
+    });
+}
+
+Storage.prototype.disconnect = function() {
+    this.chunks.forEach(function(chunk) {
+        chunk.disconnect();
     });
 }
 

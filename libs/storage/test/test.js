@@ -10,31 +10,34 @@ var Storage = require("../storage");
 
 var RECORDS = 50000;
 
-var storage = new Storage(__dirname + "/db", 10);
-
-var processed = 0;
-util.print("\n# inserting...\n");
-storage.open(function(err, res) {    
-    var start = (new Date).getTime();
-    for(var i=0; i<RECORDS; i++) {                
-        storage.set("test"+i, "hello world"+i, function(err, res) {
-            assert.ifError(err);
-            util.print("processing " + (100.0 * processed / RECORDS).toFixed(2) + "% \r");
-            if (++processed === RECORDS) {
-                util.print("\nspeed " + (((new Date).getTime() - start) / RECORDS) + " ms per record\n");
-                storage.close(function() {                    
-                    process.emit("search");
-                });                
-            }
-        });
-    }
+process.on("insert", function() {
+    util.print("\n# inserting...\n");        
+    var storage = new Storage(__dirname + "/db", 10);
+    var processed = 0;
+    storage.open(function(err, res) {        
+        var start = (new Date).getTime();
+        for(var i=0; i<RECORDS; i++) {                
+            storage.set("test"+i, "hello world"+i, function(err, res) {
+                assert.ifError(err);
+                util.print("processing " + (100.0 * processed / RECORDS).toFixed(2) + "% \r");
+                if (++processed === RECORDS) {
+                    util.print("\nspeed " + (((new Date).getTime() - start) / RECORDS) + " ms per record\n");
+                    storage.close(function() {
+                        storage.disconnect();
+                        process.emit("search");
+                    });                
+                }
+            });
+        }
+    });
 });
 
 
 process.on("search", function() {
-    var processed = 0;
     util.print("\n# searching...\n");
-    storage.open(function(err, res) {
+    var storage = new Storage(__dirname + "/db", 10);
+    var processed = 0;    
+    storage.open(function(err, res) {        
         var start = (new Date).getTime();
         for(var i=0; i<RECORDS; i++) {                
             storage.get("test"+i,function(err, res) {
@@ -42,7 +45,8 @@ process.on("search", function() {
                 util.print("processing " + (100.0 * processed / RECORDS).toFixed(2) + "% \r");
                 if (++processed === RECORDS) {
                     util.print("\nspeed " + (((new Date).getTime() - start) / RECORDS) + " ms per record\n");
-                    storage.close(function() {                    
+                    storage.close(function() {
+                        storage.disconnect();
                         process.emit("remove");
                     });                
                 }
@@ -53,8 +57,9 @@ process.on("search", function() {
 
 
 process.on("remove", function() {
-    var processed = 0;
     util.print("\n# removing...\n");
+    var storage = new Storage(__dirname + "/db", 10);
+    var processed = 0;    
     storage.open(function(err, res) {
         var start = (new Date).getTime();
         for(var i=0; i<RECORDS; i++) {                
@@ -63,7 +68,8 @@ process.on("remove", function() {
                 util.print("processing " + (100.0 * processed / RECORDS).toFixed(2) + "% \r");
                 if (++processed === RECORDS) {
                     util.print("\nspeed " + (((new Date).getTime() - start) / RECORDS) + " ms per record\n");
-                    storage.close(function() {                    
+                    storage.close(function() {
+                        storage.disconnect();
                         process.emit("done");
                     });                
                 }
@@ -76,3 +82,8 @@ process.on("remove", function() {
 process.on("done", function() {
     process.exit();
 });
+
+
+
+
+process.emit("insert");

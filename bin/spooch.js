@@ -91,6 +91,7 @@ Spooch.prototype.start = function() {
 Spooch.prototype.stop = function() {
     var self = this;    
     this.storage.close(function() {
+        self.storage.disconnect();
         for(var plugin in self.plugins) {
             self.plugins[plugin].onStop();
         }        
