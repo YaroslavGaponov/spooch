@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/local/spooch/bin/spoochd $1

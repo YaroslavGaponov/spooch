@@ -1,0 +1,6 @@
+#File list of spooch
+#See details of directives at http://www.rpm.org/max-rpm/s1-rpm-inside-files-list-directives.html
+
+%dir /usr/local/spooch
+%dir /usr/local/bin
+%attr(755,-,-) /usr/local/bin/spooch

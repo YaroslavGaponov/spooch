@@ -32,3 +32,5 @@ Other you can develop own plugins.
 Some examples:
 `./test/array.sh` or `./test/object.sh`
 
+
+
