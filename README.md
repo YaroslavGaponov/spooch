@@ -34,3 +34,20 @@ Some examples:
 
 
 
+# Install, start, stop and uninstall 
+
+## Install from rpm package
+
+`rpm -ivh https://raw.github.com/YaroslavGaponov/spooch/master/installer/spooch.rpm`
+
+## Start
+
+`sudo spooch start`
+
+## Stop
+
+`sudo spooch stop`
+
+## Uninstall from system
+
+`rpm -e spooch`
