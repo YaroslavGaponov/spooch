@@ -4,11 +4,7 @@
  * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
  */
 
-var daemon = require("daemonize2").setup({
-    main: "spooch.js",
-    name: "spooch",
-    pidfile: "spooch.pid"
-});
+var daemon = require("../libs/utils/daemon")("spooch.js");
 
 switch (process.argv[2]) {
 

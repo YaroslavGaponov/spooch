@@ -108,12 +108,10 @@ true BEG Post-installation script
 if test "$1" = "1"; then # Install
 	#Place your script post-install script
 	#echo "Post-install script version:" %{version}>> /tmp/%{name}.log
-	cd /usr/local/spooch; npm install daemonize2;
 	:
 else # Update ($1 = "2")
 	#Place your script post-update script
 	#echo "Post-update script of new version:" %{version}>> /tmp/%{name}.log
-	cd /usr/local/spooch; npm update daemonize2;
 	:
 fi
 
@@ -125,12 +123,10 @@ true BEG Pre-uninstall script
 if test "$1" = "0"; then # Uninstall
 	#Place your script pre-uninstall script
 	#echo "Pre-uninstall script version:" %{version}>> /tmp/%{name}.log
-	cd /usr/local/spooch; npm uninstall daemonize2;
 	:
 else # Uninstall by new version ($1 = "1")
 	#Place your script pre-update script
 	#echo "Pre-update script of old version:" %{version}>> /tmp/%{name}.log
-	cd /usr/local/spooch; npm uninstall daemonize2;
 	:
 fi
 

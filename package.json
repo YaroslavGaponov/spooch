@@ -1,6 +1,6 @@
 {
   "name": "spooch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NoSQL database server with REST API in pure Node.JS",
   "main": "./bin/spoochd",
   "bin": {
@@ -8,9 +8,6 @@
   },
   "directories": {
     "test": "test"
-  },
-  "dependencies": {
-    "daemonize2": "~0.4.2"
   },
   "devDependencies": {},
   "scripts": {
