@@ -8,7 +8,7 @@ var cp = require("child_process");
 
 var Daemon = function(filename) {
     this._module = filename;
-    this._pidfile = path.basename(filename, path.extname(filename)) + ".pid";
+    this._pidfile = path.dirname(filename) + "/" +  path.basename(filename, path.extname(filename)) + ".pid";
 }
 
 Daemon.prototype.start = function() {

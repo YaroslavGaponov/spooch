@@ -4,7 +4,7 @@
  * copyright (c) 2013 Yaroslav Gaponov <yaroslav.gaponov@gmail.com>
  */
 
-var daemon = require("../libs/utils/daemon")("spooch.js");
+var daemon = require("../libs/utils/daemon")(__dirname + "/spooch.js");
 
 switch (process.argv[2]) {
 
