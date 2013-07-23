@@ -8,17 +8,14 @@ var path  = require("path");
 var errors = require("./errors.js");
 var Server = require("../libs/server/server.js");
 var Storage = require("../libs/storage/storage.js");
+var Logger = require("../libs/utils/logger.js");
 
 var Spooch = function(options) {
     var self = this;
 
-    this.storage = new Storage
-        (
-            options.database.path,
-            options.database.shards
-        );
-        
-        
+    this.logger = new Logger.Logger(options.logger.path, options.logger.level)    
+    this.storage = new Storage(options.database.path, options.database.shards);
+    
     this.plugins = {};
     var list = fs.readdirSync(options.plugins.path);
     for(var i=0; i<list.length; i++) {
@@ -80,20 +77,26 @@ var Spooch = function(options) {
 }
 
 Spooch.prototype.start = function() {
-    var self = this;    
-    this.storage.open(function() {
-        self.server.start();
+    var self = this;
+    self.logger.info("spooch is starting...");
+    self.storage.open(function() {
+        self.server.start();        
+        self.logger.info("spooch plugins are starting...");
         for(var plugin in self.plugins) {
+            self.logger.info("spooch plugin [" + plugin + "] is starting...");
             self.plugins[plugin].onStart(self.storage);
         }
     });
 }
 
 Spooch.prototype.stop = function() {
-    var self = this;    
-    this.storage.close(function() {
+    var self = this;
+    self.logger.info("spooch is stopping...");
+    self.storage.close(function() {
         self.storage.disconnect();
+        self.logger.info("spooch plugins are stopping...");
         for(var plugin in self.plugins) {
+            self.logger.info("spooch plugin [" + plugin + "] is stopping...");
             self.plugins[plugin].onStop();
         }        
         self.server.stop();
