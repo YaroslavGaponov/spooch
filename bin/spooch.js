@@ -103,3 +103,11 @@ Spooch.prototype.stop = function() {
 var options = require(path.normalize(__dirname + "/../conf/spooch.conf"));
 var spooch = new Spooch(options);
 spooch.start();
+
+
+process.on("SIGHUP", function() {
+    if (spooch) {
+        spooch.stop();
+        spooch = null;
+    }
+});
