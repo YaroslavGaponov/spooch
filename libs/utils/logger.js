@@ -30,7 +30,7 @@ var Logger = module.exports.Logger = function(path, levels) {
 
 
 Logger.prototype.log = function(level, message) {
-    if ((this.levels & level) != 0) {
+    if ((this.levels & level) === level) {
         var line = util.format("%s - [%s]   %s\n", new Date().toJSON(), LEVEL.toString(level), message);
         fs.appendFile(this.logfile, line);
     }
