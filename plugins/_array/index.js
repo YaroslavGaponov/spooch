@@ -8,6 +8,7 @@ var errors = require("./errors.js");
 var ArrayPlugin = module.exports.Plugin = function(options) {
     if (this instanceof ArrayPlugin) {
         this.options = options;
+        this.logger = Object.INJECT;
     } else {
         return new ArrayPlugin(options);
     }    
@@ -15,21 +16,23 @@ var ArrayPlugin = module.exports.Plugin = function(options) {
 
 ArrayPlugin.prototype.onStart = function(storage) {
     this.storage = storage;
+    this.logger.info("spooch plugin [_array] is started.");
 }
 
 ArrayPlugin.prototype.onStop = function() {
+    this.logger.info("spooch plugin [_array] is stoped.");
 }
 
 ArrayPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
     var method = method.toLowerCase();
     if (this[method] && (typeof this[method] === "function")) {
         this[method](paths, params, data, cb);
-    } else {    
-        cb(errors.NotImplemented("method is not supported"));
+    } else {
+        var err = util.format("spooch plugin [_array]: method %s is not supported", method);
+        this.logger.error(err);
+        cb(errors.NotImplemented(err));
     }
 }
-
-
 
 ArrayPlugin.prototype.get = function(paths, params, data, cb) {
     var self = this;

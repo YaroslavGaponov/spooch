@@ -8,6 +8,7 @@ var util = require("util");
 var ObjectPlugin = module.exports.Plugin = function(options) {
     if (this instanceof ObjectPlugin) {
         this.options = options;
+        this.logger = Object.INJECT;
     } else {
         return new ObjectPlugin(options);
     }    
@@ -15,9 +16,11 @@ var ObjectPlugin = module.exports.Plugin = function(options) {
 
 ObjectPlugin.prototype.onStart = function(storage) {
     this.storage = storage;
+    this.logger.info("spooch plugin [_object] is started.");
 }
 
 ObjectPlugin.prototype.onStop = function() {
+    this.logger.info("spooch plugin [_object] is stoped.");
 }
 
 ObjectPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
@@ -25,7 +28,9 @@ ObjectPlugin.prototype.onRequest = function(method, paths, params, data, cb) {
     if (this[method] && (typeof this[method] === "function")) {
         this[method](paths, params, data, cb);
     } else {    
-        cb(errors.NotImplemented("method is not supported"));
+        var err = util.format("spooch plugin [_object]: method %s is not supported", method);
+        this.logger.error(err);
+        cb(errors.NotImplemented(err));
     }
 }
 

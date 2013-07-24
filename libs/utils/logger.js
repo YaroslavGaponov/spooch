@@ -6,7 +6,11 @@ var util = require("util");
 var fs = require("fs");
 
 var LEVEL = module.exports.LEVEL = {
-    ERROR: 1<<0, WARN: 1<<1, INFO: 1<<2, DEBUG: 1<<3, TRACE: 1<<4,    
+    ERROR:  1<<0,
+    WARN:   1<<1,
+    INFO:   1<<2,
+    DEBUG:  1<<3,
+    TRACE:  1<<4,    
     toString: function(level) {
         switch (level) {
             case this.ERROR:    return "ERROR";

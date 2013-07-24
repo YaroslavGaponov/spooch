@@ -5,6 +5,8 @@
 var fs = require("fs");
 var path  = require("path");
 
+require("../libs/utils/inject.js");
+
 var errors = require("./errors.js");
 var Server = require("../libs/server/server.js");
 var Storage = require("../libs/storage/storage.js");
@@ -13,13 +15,18 @@ var Logger = require("../libs/utils/logger.js");
 var Spooch = function(options) {
     var self = this;
 
-    this.logger = new Logger.Logger(options.logger.path, options.logger.level)    
-    this.storage = new Storage(options.database.path, options.database.shards);
+    this.logger = new Logger.Logger(options.logger.path, options.logger.level);
+    
+    this.storage =
+        new Storage(options.database.path, options.database.shards)
+            .inject("logger", this.logger);    
     
     this.plugins = {};
     var list = fs.readdirSync(options.plugins.path);
     for(var i=0; i<list.length; i++) {
-        this.plugins[list[i]] = require(options.plugins.path + "/" +  list[i]).Plugin();        
+        this.plugins[list[i]] =
+            require(options.plugins.path + "/" +  list[i]).Plugin()
+                .inject("logger", this.logger);        
     }
     
     this.server = new Server(options.server);
@@ -83,8 +90,10 @@ Spooch.prototype.start = function() {
         self.server.start();        
         self.logger.info("spooch plugins are starting...");
         for(var plugin in self.plugins) {
-            self.logger.info("spooch plugin [" + plugin + "] is starting...");
-            self.plugins[plugin].onStart(self.storage);
+            if (self.plugins.hasOwnProperty(plugin)) {
+                self.logger.info("spooch plugin [" + plugin + "] is starting...");
+                self.plugins[plugin].onStart(self.storage);
+            }
         }
     });
 }
@@ -96,8 +105,10 @@ Spooch.prototype.stop = function() {
         self.storage.disconnect();
         self.logger.info("spooch plugins are stopping...");
         for(var plugin in self.plugins) {
-            self.logger.info("spooch plugin [" + plugin + "] is stopping...");
-            self.plugins[plugin].onStop();
+            if (self.plugins.hasOwnProperty(plugin)) {
+                self.logger.info("spooch plugin [" + plugin + "] is stopping...");
+                self.plugins[plugin].onStop();
+            }
         }        
         self.server.stop();
     });
