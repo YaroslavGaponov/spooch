@@ -9,7 +9,7 @@ module.exports.CONFIGS = {
             TYPE: "lru"
         },
         DRIVER: {
-            TYPE: "htable"
+            TYPE: "htable-btree"
         }
     },
     FILE_SLOT: {

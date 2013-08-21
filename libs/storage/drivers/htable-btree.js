@@ -23,11 +23,12 @@ var TABLE = {
 };
 
 var RECORD_HEADER = {
-    NEXT_OFFSET: 0,
-    KEY_LENGTH_OFFSET: 4,
-    VALUE_LENGTH_OFFSET: 8,
+    LEFT_OFFSET: 0,
+    RIGHT_OFFSET: 4,
+    KEY_LENGTH_OFFSET: 8,
+    VALUE_LENGTH_OFFSET: 12,
     
-    SIZE: 12
+    SIZE: 16
 };
 
 var Comparator = {
@@ -92,15 +93,9 @@ Driver.prototype.close = function() {
 }
 
 Driver.prototype.forEach = function(cb) {
-    for(var index=0; index<TABLE.TABLE_ELEMETS; index++) {
-        
-        var o = this._newBuffer(4);
-        fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
-        var offset = o.readUInt32BE(0);
-        
-        var record_header = this._newBuffer(RECORD_HEADER.SIZE); 
     
-        while(offset != TABLE.EOL) {        
+    var read = function(offset) {
+        if (offset != TABLE.EOL) {        
             fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
             var curr_key_size = record_header.readUInt32BE(RECORD_HEADER.KEY_LENGTH_OFFSET);
             var curr_key = new Buffer(curr_key_size);
@@ -109,9 +104,21 @@ Driver.prototype.forEach = function(cb) {
             var curr_value = new Buffer(curr_value_size);
             fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + RECORD_HEADER.SIZE + curr_key_size);
             cb(Driver.stringify(curr_key), Driver.stringify(curr_value));
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
-        }
-    }    
+            read(record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET));
+            read(record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET));
+        }        
+    }
+    
+    for(var index=0; index<TABLE.TABLE_ELEMETS; index++) {
+        
+        var o = this._newBuffer(4);
+        fs.readSync(this.fd, o, 0, o.length, HEADER.SIZE + (index << 2));
+        var offset = o.readUInt32BE(0);
+        
+        var record_header = this._newBuffer(RECORD_HEADER.SIZE); 
+    
+        read(offset);   
+    }
 }
 
 Driver.prototype.set = function(key, value) {
@@ -122,9 +129,11 @@ Driver.prototype.set = function(key, value) {
     var offset = this._getStartOffset(key);
     
     var pred_offset = null;
-
+    var left_offset = rigth_offset = TABLE.EOL;
+        
     var record_header = this._newBuffer(RECORD_HEADER.SIZE);
-    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.NEXT_OFFSET);
+    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.LEFT_OFFSET);
+    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.RIGHT_OFFSET);
 
     while(offset != TABLE.EOL) {
         fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
@@ -133,18 +142,21 @@ Driver.prototype.set = function(key, value) {
         fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
         var compared = Comparator.compare(key, Driver.stringify(curr_key));
         if (compared === Comparator.EQUAL) {
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
+            left_offset = record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET);
+            rigth_offset = record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET);
             break;            
         } else if (compared === Comparator.LESS) {
             pred_offset = offset;
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET);
         } else {
-            break;
+            pred_offset = offset;
+            offset = record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET);
         }
     }
     
     var rec = new Buffer(RECORD_HEADER.SIZE + key.length + value.length);
-    rec.writeUInt32BE(offset, RECORD_HEADER.NEXT_OFFSET);
+    rec.writeUInt32BE(left_offset, RECORD_HEADER.LEFT_OFFSET);
+    rec.writeUInt32BE(rigth_offset, RECORD_HEADER.RIGHT_OFFSET);
     rec.writeUInt32BE(key.length, RECORD_HEADER.KEY_LENGTH_OFFSET);
     rec.writeUInt32BE(value.length, RECORD_HEADER.VALUE_LENGTH_OFFSET);
     rec.write(key, RECORD_HEADER.SIZE);
@@ -155,7 +167,11 @@ Driver.prototype.set = function(key, value) {
     if (pred_offset) {
         var o = this._newBuffer(4);
         o.writeUInt32BE(this.eof, 0);
-        fs.writeSync(this.fd, o, 0, o.length, pred_offset +  + RECORD_HEADER.NEXT_OFFSET);
+        if (compared === Comparator.LESS) {
+            fs.writeSync(this.fd, o, 0, o.length, pred_offset + RECORD_HEADER.LEFT_OFFSET);
+        } else {
+            fs.writeSync(this.fd, o, 0, o.length, pred_offset + RECORD_HEADER.RIGHT_OFFSET);
+        }
     } else {
         this._setStartOffset(key, this.eof);
     }
@@ -196,9 +212,9 @@ Driver.prototype.get = function(key) {
             fs.readSync(this.fd, curr_value, 0, curr_value_size, offset + RECORD_HEADER.SIZE + curr_key_size);
             return Driver.stringify(curr_value);
         } else if (compared === Comparator.LESS) {
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET);
         } else {
-            return null;
+            offset = record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET);
         }
     }
     
@@ -212,9 +228,11 @@ Driver.prototype.remove = function(key) {
     var offset = this._getStartOffset(key);
         
     var pred_offset = null;
+    var left_offset = rigth_offset = TABLE.EOL;
 
     var record_header = this._newBuffer(RECORD_HEADER.SIZE);
-    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.NEXT_OFFSET);
+    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.LEFT_OFFSET);
+    record_header.writeUInt32BE(TABLE.EOL, RECORD_HEADER.RIGHT_OFFSET);
 
     while(offset != TABLE.EOL) {
         fs.readSync(this.fd, record_header, 0, record_header.length, offset);        
@@ -223,20 +241,27 @@ Driver.prototype.remove = function(key) {
         fs.readSync(this.fd, curr_key, 0, curr_key_size, offset + RECORD_HEADER.SIZE);
         var compared = Comparator.compare(key, Driver.stringify(curr_key));
         if (compared === Comparator.EQUAL) {
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
+            left_offset = record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET);
+            rigth_offset = record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET);
             break;            
         } else if (compared === Comparator.LESS) {
             pred_offset = offset;
-            offset = record_header.readUInt32BE(RECORD_HEADER.NEXT_OFFSET);
+            offset = record_header.readUInt32BE(RECORD_HEADER.LEFT_OFFSET);
         } else {
-            return false;
+            pred_offset = offset;
+            offset = record_header.readUInt32BE(RECORD_HEADER.RIGHT_OFFSET);
         }
     }
     
     if (pred_offset) {
         var o = this._newBuffer(4);
-        o.writeUInt32BE(offset, RECORD_HEADER.NEXT_OFFSET);
-        fs.writeSync(this.fd, o, 0, o.length, pred_offset + RECORD_HEADER.NEXT_OFFSET);
+        o.writeUInt32BE(left_offset, RECORD_HEADER.LEFT_OFFSET);
+        o.writeUInt32BE(rigth_offset, RECORD_HEADER.RIGHT_OFFSET);
+        if (compared === Comparator.LESS) {
+            fs.writeSync(this.fd, o, 0, o.length, pred_offset + RECORD_HEADER.LEFT_OFFSET);
+        } else {
+            fs.writeSync(this.fd, o, 0, o.length, pred_offset + RECORD_HEADER.RIGHT_OFFSET);
+        }
     } else {
         this._setStartOffset(key, TABLE.EOL);
     }
