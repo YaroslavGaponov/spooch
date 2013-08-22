@@ -9,7 +9,7 @@ module.exports.CONFIGS = {
             TYPE: "lru"
         },
         DRIVER: {
-            TYPE: "htable-btree"
+            TYPE: "htable"
         }
     },
     FILE_SLOT: {
@@ -19,6 +19,24 @@ module.exports.CONFIGS = {
         },
         DRIVER: {
             TYPE: "htable"
+        }
+    },
+    FILE_LRU_BTREE: {
+        CACHE: {
+            SIZE: 1024,
+            TYPE: "lru"
+        },
+        DRIVER: {
+            TYPE: "htable-btree"
+        }
+    },
+    FILE_SLOT_BTREE: {
+        CACHE: {
+            SIZE: 1024,
+            TYPE: "slot"
+        },
+        DRIVER: {
+            TYPE: "htable-btree"
         }
     },
     MEMORY: {

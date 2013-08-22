@@ -90,7 +90,7 @@ process.on('message', function(request) {
     try {        
         if (!driver) {
             var Driver = require('./driver');
-            driver = Driver.create(Driver.CONFIGS.FILE_LRU, process.argv[2]);
+            driver = Driver.create(Driver.CONFIGS.FILE_LRU_BTREE, process.argv[2]);
         }
                 
         if (!driver || !driver[request.type] || typeof driver[request.type] !== "function") {
