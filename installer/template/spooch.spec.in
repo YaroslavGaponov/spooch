@@ -108,6 +108,8 @@ true BEG Post-installation script
 if test "$1" = "1"; then # Install
 	#Place your script post-install script
 	#echo "Post-install script version:" %{version}>> /tmp/%{name}.log
+	chkconfig --add spooch
+	chkconfig --level 2345 spooch on 
 	:
 else # Update ($1 = "2")
 	#Place your script post-update script
@@ -123,6 +125,7 @@ true BEG Pre-uninstall script
 if test "$1" = "0"; then # Uninstall
 	#Place your script pre-uninstall script
 	#echo "Pre-uninstall script version:" %{version}>> /tmp/%{name}.log
+	chkconfig --del spooch
 	:
 else # Uninstall by new version ($1 = "1")
 	#Place your script pre-update script
